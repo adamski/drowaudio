@@ -66,6 +66,7 @@ public:
     {
         autoCorrelationFunction,
         squareDifferenceFunction,
+        autoCorrelationFftFunction
     };
     
     //==============================================================================
@@ -170,7 +171,11 @@ private:
     //==============================================================================
     double detectPitchForBlock (float* samples, int numSamples);
     double detectAcfPitchForBlock (float* samples, int numSamples);
+    double detectAcFftPitchForBlock (float* samples, int numSamples);
     double detectSdfPitchForBlock (float* samples, int numSamples);
+    
+    //==============================================================================
+    template <typename FloatingPointType> void autocorrelateFft (const FloatingPointType* inputSamples, int numSamples, FloatingPointType* outputSamples, /*int fftSize,*/ FloatingPointType*  magnitudes) noexcept;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PitchDetector);

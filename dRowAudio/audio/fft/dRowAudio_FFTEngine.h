@@ -51,6 +51,7 @@ public:
 		The number of samples must be equal to the fftSize.
 	 */
 	void performFFT (float* samples);
+    void performIFFT (float* samples);
 	
 	/**	This will fill the buffer with the magnitudes of the last performed FFT.
 		You can then get this buffer using getMagnitudesBuffer(). Remember that

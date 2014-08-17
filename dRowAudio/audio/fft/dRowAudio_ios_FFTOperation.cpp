@@ -65,8 +65,25 @@ void FFTOperation::setFFTSizeLog2 (int newFFTSizeLog2)
 
 void FFTOperation::performFFT (float* samples)
 {
+    //convert to split complex format with evens in real and odds in imag
 	vDSP_ctoz ((COMPLEX *) samples, 2, &fftBufferSplit, 1, fftProperties.fftSizeHalved);
+    //calc fft
 	vDSP_fft_zrip (fftConfig, &fftBufferSplit, 1, fftProperties.fftSizeLog2, FFT_FORWARD);
+}
+
+void FFTOperation::performIFFT (float* samples)
+{
+    /*
+    float *real_p = fftBufferSplit.realp, *imag_p = fftBufferSplit.imagp;
+    for (i = 0; i < fftProperties.fftSizeHalved; i++) {
+        *real_p++ = magnitude[i] * cosf(phase[i]);
+        *imag_p++ = magnitude[i] * sinf(phase[i]);
+    }
+    //from http://pkmital.com/home/2011/04/14/real-fftifft-with-the-accelerate-framework/
+    */
+    
+    vDSP_fft_zrip(fftConfig, &fftBufferSplit, 1, fftProperties.fftSizeLog2, FFT_INVERSE);
+    vDSP_ztoc(&fftBufferSplit, 1, (COMPLEX*) samples, 2, fftProperties.fftSizeHalved);
 }
 
 //============================================================================

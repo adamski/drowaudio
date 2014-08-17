@@ -68,6 +68,13 @@ void FFTEngine::performFFT (float* samples)
 	fftOperation.performFFT (samples);
 }
 
+void FFTEngine::performIFFT (float* samples)
+{
+	// first apply the current window
+	windowProperties.applyWindow (samples, getFFTProperties().fftSize);
+	fftOperation.performIFFT (samples);
+}
+
 void FFTEngine::findMagnitudes (Buffer* bufferToFill)
 {
 	// local copies for speed

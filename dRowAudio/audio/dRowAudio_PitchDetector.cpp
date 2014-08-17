@@ -170,6 +170,158 @@ double PitchDetector::detectPitchForBlock (float* samples, int numSamples)
     }
 }
 
+
+
+double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
+{
+    const int minSample = int (sampleRate / maxFrequency);
+    const int maxSample = int (sampleRate / minFrequency);
+    
+    const int windowSize = 4096;
+    
+    Buffer magnitudes(windowSize);
+    
+    lowFilter.reset();
+    highFilter.reset();
+    lowFilter.processSamples (samples, numSamples);
+    highFilter.processSamples (samples, numSamples);
+    
+    autocorrelateFft (samples, numSamples, buffer1.getData(), magnitudes.getData());
+    normalise (buffer1.getData(), buffer1.getSize());
+    
+    float* bufferData = buffer1.getData();
+    
+    int firstNegativeZero = 0;
+    
+    // first peak method
+    for (int i = 0; i < numSamples - 1; ++i)
+    {
+        if (bufferData[i] >= 0.0f && bufferData[i + 1] < 0.0f)
+        {
+            firstNegativeZero = i;
+            break;
+        }
+    }
+    float max = -1.0f;
+    int sampleIndex = 0;
+    for (int i = jmax (firstNegativeZero, minSample); i < maxSample; ++i)
+    {
+        if (bufferData[i] > max)
+        {
+            max = bufferData[i];
+            sampleIndex = i;
+        }
+    }
+    if (sampleIndex > 0)
+        return sampleRate / sampleIndex;
+    else
+        return 0.0;
+}
+
+//==============================================================================
+/** Finds the autocorrelation of a set of given samples using FFT.
+ 
+ This will cross-correlate inputSamples with itself and put the result in
+ output samples.
+ Resulting FFT magnitudes are saved in magnitudes, to be used in further processing.
+ 
+ FFT the time domain signal
+ convert complex FFT output to magnitude and zero phase (i.e. power spectrum)
+ take inverse FFT
+ 
+ from http://dsp.stackexchange.com/questions/1919/efficiently-calculating-autocorrelation-using-ffts?rq=1
+ 
+ autocorr = ifft( complex( abs(fft(inputData, n=2*N-1))**2, 0 ) )
+ 
+ or:
+ 
+ %% Cross correlation through a FFT
+ n = 1024;
+ x = randn(n,1);
+ % cross correlation reference
+ xref = xcorr(x,x);
+ 
+ %FFT method based on zero padding
+ // apply window first!
+ fx = fft([x; zeros(n,1)]); % zero pad and FFT
+ x2 = ifft(fx.*conj(fx)); % abs()^2 and IFFT
+ % circulate to get the peak in the middle and drop one
+ % excess zero to get to 2*n-1 samples
+ x2 = [x2(n+2:end); x2(1:n)];
+ % calculate the error
+ d = x2-xref; % difference, this is actually zero
+ fprintf('Max error = %6.2f\n',max(abs(d)));
+ 
+ ...
+ 
+ */
+template <typename FloatingPointType> void PitchDetector::autocorrelateFft (const FloatingPointType* inputSamples, int numSamples, FloatingPointType* outputSamples, /*int fftSize,*/ FloatingPointType*  magnitudes) noexcept
+{
+    int numSamples2 = numSamples*2;
+    //    %FFT method based on zero padding
+    //    // apply window first!
+    Window window(numSamples);
+    
+    std::copy(inputSamples, inputSamples+(numSamples*sizeof(FloatingPointType)), outputSamples);
+    
+    window.applyWindow(outputSamples, numSamples);
+    
+    // create padding  -  might be a more efficient way of doing this
+    FloatingPointType* inputPadded = static_cast<FloatingPointType *> (malloc(numSamples2*sizeof(FloatingPointType)));
+    zeromem(inputPadded, numSamples2);
+    
+    std::copy(outputSamples, outputSamples+(numSamples*sizeof(FloatingPointType)), inputPadded);
+    // end create padding
+    
+    FFTEngine fft(log2(numSamples2));
+    
+    //    fx = fft([x; zeros(n,1)]); % zero pad and FFT
+    fft.performFFT(inputPadded);
+    
+    //----------?????????
+    
+    magnitudes = fft.getMagnitudesBuffer().getData();
+    
+    //    x2 = ifft(fx.*conj(fx)); % abs()^2 and IFFT
+    
+    // abs, ^2
+    for (int i=0; i<numSamples2; i++)
+    {
+        inputPadded[i] = std::pow (std::abs (inputPadded[i]), 2);
+    }
+    
+    fft.performIFFT(inputPadded);
+    
+    //std::copy(inputPadded[0], inputPadded[numSamples-1], outputSamples);
+    outputSamples = inputPadded;
+    
+    // return ifft( complex( abs(fft(inputData, n=2*N-1))**2, 0 ) )
+    
+    
+    //    % circulate to get the peak in the middle and drop one
+    //    % excess zero to get to 2*n-1 samples
+    //    x2 = [x2(n+2:end); x2(1:n)];
+    //    % calculate the error
+    //    d = x2-xref; % difference, this is actually zero
+    //    fprintf('Max error = %6.2f\n',max(abs(d)));
+    
+    
+    // previous code
+    /*
+    for (int i = 0; i < numSamples; i++)
+    {
+        FloatingPointType sum = 0;
+        
+        for (int j = 0; j < numSamples - i; j++)
+            sum += inputSamples[j] * inputSamples[j + i];
+            
+            outputSamples[i] = sum * (static_cast<FloatingPointType> (1) / numSamples);
+            }
+     */
+}
+
+
+
 double PitchDetector::detectAcfPitchForBlock (float* samples, int numSamples)
 {
     const int minSample = int (sampleRate / maxFrequency);

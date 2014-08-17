@@ -37,6 +37,12 @@ FFTOperation::FFTOperation (int fftSizeLog2)
     : fftProperties (fftSizeLog2)
 {
 	fftConfig = new ffft::FFTReal<float> (fftProperties.fftSize);
+    
+    /*
+    // if we know fftSize this should be much more efficient:
+    // 1024-point (2^10) FFT object constructed.
+    ffft::FFTRealFixLen <10> fft_object;
+    */
 
 	fftBuffer.malloc (fftProperties.fftSize);
 	fftBufferSplit.realp = fftBuffer.getData();
@@ -65,6 +71,11 @@ void FFTOperation::setFFTSizeLog2 (int newFFTSizeLog2)
 void FFTOperation::performFFT (float* samples)
 {
     fftConfig->do_fft (fftBuffer.getData(), samples);
+}
+
+void FFTOperation::performIFFT (float* samples)
+{
+    fftConfig->do_ifft (samples, fftBuffer.getData());
 }
 
 

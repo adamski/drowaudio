@@ -110,6 +110,7 @@ public:
 	const SplitComplex& getFFTBuffer()      {	return fftBufferSplit;		}
 	
 	void performFFT (float* samples);
+    void performIFFT (float* samples);
 	
 private:
     //==============================================================================
