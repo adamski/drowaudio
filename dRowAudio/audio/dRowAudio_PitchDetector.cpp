@@ -164,9 +164,10 @@ double PitchDetector::detectPitchForBlock (float* samples, int numSamples)
 {
     switch (detectionMethod)
     {
-        case autoCorrelationFunction:   return detectAcfPitchForBlock (samples, numSamples);
-        case squareDifferenceFunction:  return detectSdfPitchForBlock (samples, numSamples);
-        default:                        return 0.0;
+        case autoCorrelationFunction:       return detectAcfPitchForBlock (samples, numSamples);
+        case squareDifferenceFunction:      return detectSdfPitchForBlock (samples, numSamples);
+        case autoCorrelationFftFunction:    return detectAcFftPitchForBlock (samples, numSamples);
+        default:                            return 0.0;
     }
 }
 
@@ -177,7 +178,7 @@ double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
     const int minSample = int (sampleRate / maxFrequency);
     const int maxSample = int (sampleRate / minFrequency);
     
-    const int windowSize = 4096;
+    const int windowSize = 2048;
     
     Buffer magnitudes(windowSize);
     
@@ -260,6 +261,7 @@ template <typename FloatingPointType> void PitchDetector::autocorrelateFft (cons
     int numSamples2 = numSamples*2;
     //    %FFT method based on zero padding
     //    // apply window first!
+    
     Window window(numSamples);
     
     std::copy(inputSamples, inputSamples+(numSamples*sizeof(FloatingPointType)), outputSamples);
