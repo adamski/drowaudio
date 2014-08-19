@@ -41,6 +41,22 @@ PitchDetector::PitchDetector()
       mostRecentPitch       (0.0)
 {
     updateFiltersAndBlockSizes();
+    logger = Logger::getCurrentLogger();
+}
+
+PitchDetector::PitchDetector(int bufferSize)
+: detectionMethod       (autoCorrelationFunction),
+sampleRate            (44100.0),
+minFrequency          (50), maxFrequency (1600),
+buffer1               (bufferSize), buffer2 (bufferSize),
+numSamplesNeededForDetection (int ((sampleRate / minFrequency) * 2)),
+currentBlockBuffer    (numSamplesNeededForDetection),
+inputFifoBuffer       (numSamplesNeededForDetection * 2),
+mostRecentPitch       (0.0)
+{
+    updateFilters();
+    logger = Logger::getCurrentLogger();
+    
 }
 
 PitchDetector::~PitchDetector()
@@ -62,6 +78,57 @@ void PitchDetector::processSamples (const float* samples, int numSamples) noexce
 }
 
 //==============================================================================
+
+double PitchDetector::detectPitchAutoFFT (float* samples) noexcept
+{
+    //Array<double> pitches;
+    //pitches.ensureStorageAllocated (numPitches);
+    
+    //while (numSamples >= numSamplesNeededForDetection)
+    //{
+        double pitch = detectAcFftPitchForBlock (samples);
+        
+        if (pitch > 0.0) return pitch;
+            //pitches.add (pitch);
+            
+        //numSamples -= numSamplesNeededForDetection;
+        //samples += numSamplesNeededForDetection;
+    //}
+    /*
+    if (pitches.size() == 1)
+    {
+        return pitches[0];
+    }
+    else if (pitches.size() > 1)
+    {
+        DefaultElementComparator<double> sorter;
+        pitches.sort (sorter);
+        
+        const double stdDev = findStandardDeviation (pitches.getRawDataPointer(), pitches.size());
+        const double medianSample = findMedian (pitches.getRawDataPointer(), pitches.size());
+        const double lowerLimit = medianSample - stdDev;
+        const double upperLimit = medianSample + stdDev;
+        
+        Array<double> correctedPitches;
+        correctedPitches.ensureStorageAllocated (pitches.size());
+        
+        for (int i = 0; i < pitches.size(); ++i)
+        {
+            const double pitch = pitches.getUnchecked (i);
+            
+            if (pitch >= lowerLimit && pitch <= upperLimit)
+                correctedPitches.add (pitch);
+                }
+        
+        const double finalPitch = findMean (correctedPitches.getRawDataPointer(), correctedPitches.size());
+        
+        return finalPitch;
+    }
+    */
+    return 0.0;
+}
+
+
 double PitchDetector::detectPitch (float* samples, int numSamples) noexcept
 {
     Array<double> pitches;
@@ -115,7 +182,7 @@ double PitchDetector::detectPitch (float* samples, int numSamples) noexcept
 void PitchDetector::setSampleRate (double newSampleRate) noexcept
 {
     sampleRate = newSampleRate;
-    updateFiltersAndBlockSizes();
+    updateFiltersAndBlockSizes();  //updateFilters only if FFT method
 }
 
 void PitchDetector::setDetectionMethod (DetectionMethod newMethod)
@@ -128,7 +195,7 @@ void PitchDetector::setMinMaxFrequency (float newMinFrequency, float newMaxFrequ
     minFrequency = newMinFrequency;
     maxFrequency = newMaxFrequency;
 
-    updateFiltersAndBlockSizes();
+    updateFiltersAndBlockSizes(); //updateFilters only if FFT method
 }
 
 //==============================================================================
@@ -159,6 +226,12 @@ void PitchDetector::updateFiltersAndBlockSizes()
     buffer2.setSizeQuick (numSamplesNeededForDetection);
 }
 
+void PitchDetector::updateFilters()
+{
+    lowFilter.setCoefficients (IIRCoefficients::makeLowPass (sampleRate, maxFrequency));
+    highFilter.setCoefficients (IIRCoefficients::makeHighPass (sampleRate, minFrequency));
+}
+
 //==============================================================================
 double PitchDetector::detectPitchForBlock (float* samples, int numSamples)
 {
@@ -166,19 +239,23 @@ double PitchDetector::detectPitchForBlock (float* samples, int numSamples)
     {
         case autoCorrelationFunction:       return detectAcfPitchForBlock (samples, numSamples);
         case squareDifferenceFunction:      return detectSdfPitchForBlock (samples, numSamples);
-        case autoCorrelationFftFunction:    return detectAcFftPitchForBlock (samples, numSamples);
+        //case autoCorrelationFftFunction:    return detectAcFftPitchForBlock (samples, numSamples);
         default:                            return 0.0;
     }
 }
 
 
 
-double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
+double PitchDetector::detectAcFftPitchForBlock (float* samples) //, int numSamples)
 {
     const int minSample = int (sampleRate / maxFrequency);
     const int maxSample = int (sampleRate / minFrequency);
     
-    const int windowSize = 2048;
+    const int numSamples = buffer1.getSize();
+    
+    logger->writeToLog ("numSamples:"+String(numSamples));
+    
+    const int windowSize = buffer1.getSize();
     
     Buffer magnitudes(windowSize);
     
@@ -258,27 +335,27 @@ double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
  */
 template <typename FloatingPointType> void PitchDetector::autocorrelateFft (const FloatingPointType* inputSamples, int numSamples, FloatingPointType* outputSamples, /*int fftSize,*/ FloatingPointType*  magnitudes) noexcept
 {
-    int numSamples2 = numSamples*2;
+    //int numSamples2 = numSamples*2;
     //    %FFT method based on zero padding
     //    // apply window first!
     
-    Window window(numSamples);
+    //Window window(numSamples);
     
     std::copy(inputSamples, inputSamples+(numSamples*sizeof(FloatingPointType)), outputSamples);
     
-    window.applyWindow(outputSamples, numSamples);
+    //window.applyWindow(outputSamples, numSamples);
     
     // create padding  -  might be a more efficient way of doing this
-    FloatingPointType* inputPadded = static_cast<FloatingPointType *> (malloc(numSamples2*sizeof(FloatingPointType)));
-    zeromem(inputPadded, numSamples2);
+    //FloatingPointType* inputPadded = static_cast<FloatingPointType *> (malloc(numSamples2*sizeof(FloatingPointType)));
+    //zeromem(inputPadded, numSamples2);
     
-    std::copy(outputSamples, outputSamples+(numSamples*sizeof(FloatingPointType)), inputPadded);
+    //std::copy(outputSamples, outputSamples+(numSamples*sizeof(FloatingPointType)), inputPadded);
     // end create padding
     
-    FFTEngine fft(log2(numSamples2));
+    FFTEngine fft(log2(numSamples));
     
     //    fx = fft([x; zeros(n,1)]); % zero pad and FFT
-    fft.performFFT(inputPadded);
+    fft.performFFT(outputSamples); //(inputPadded);
     
     //----------?????????
     
@@ -287,15 +364,16 @@ template <typename FloatingPointType> void PitchDetector::autocorrelateFft (cons
     //    x2 = ifft(fx.*conj(fx)); % abs()^2 and IFFT
     
     // abs, ^2
-    for (int i=0; i<numSamples2; i++)
+    for (int i=0; i<numSamples; i++)
     {
-        inputPadded[i] = std::pow (std::abs (inputPadded[i]), 2);
+        //inputPadded[i] = std::pow (std::abs (inputPadded[i]), 2);
+        outputSamples[i] = std::pow (std::abs (outputSamples[i]), 2);
     }
     
-    fft.performIFFT(inputPadded);
+    fft.performIFFT(outputSamples); //inputPadded
     
     //std::copy(inputPadded[0], inputPadded[numSamples-1], outputSamples);
-    outputSamples = inputPadded;
+    //outputSamples = inputPadded;
     
     // return ifft( complex( abs(fft(inputData, n=2*N-1))**2, 0 ) )
     

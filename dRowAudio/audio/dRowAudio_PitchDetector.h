@@ -78,6 +78,8 @@ public:
      */
     PitchDetector();
     
+    PitchDetector(int bufferSize);
+    
     /** Destructor. */
     ~PitchDetector();
     
@@ -104,6 +106,10 @@ public:
         samples. Be sure to pass in a copy if this is undesireable.
      */
     double detectPitch (float* samples, int numSamples) noexcept;
+    
+    /** Simplified version using FFT to do the autocorrelation 
+     */
+    double detectPitchAutoFFT (float* samples) noexcept;
 
     //==============================================================================
     /** Sets the sample rate to base the detection and pitch calculation algorithms on.
@@ -164,15 +170,19 @@ private:
     Buffer currentBlockBuffer;
     FifoBuffer<float> inputFifoBuffer;
     double mostRecentPitch;
+    
+    Logger* logger;
 
     //==============================================================================
     void updateFiltersAndBlockSizes();
+    void updateFilters();
 
     //==============================================================================
     double detectPitchForBlock (float* samples, int numSamples);
     double detectAcfPitchForBlock (float* samples, int numSamples);
-    double detectAcFftPitchForBlock (float* samples, int numSamples);
     double detectSdfPitchForBlock (float* samples, int numSamples);
+    
+    double detectAcFftPitchForBlock (float* samples);
     
     //==============================================================================
     template <typename FloatingPointType> void autocorrelateFft (const FloatingPointType* inputSamples, int numSamples, FloatingPointType* outputSamples, /*int fftSize,*/ FloatingPointType*  magnitudes) noexcept;
