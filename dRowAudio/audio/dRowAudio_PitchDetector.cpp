@@ -79,7 +79,7 @@ void PitchDetector::processSamples (const float* samples, int numSamples) noexce
 
 //==============================================================================
 
-double PitchDetector::detectPitchAutoFFT (float* samples) noexcept
+double PitchDetector::detectPitchAutoFFT (float* samples, int numSamples) noexcept
 {
     //Array<double> pitches;
     //pitches.ensureStorageAllocated (numPitches);
@@ -246,7 +246,7 @@ double PitchDetector::detectPitchForBlock (float* samples, int numSamples)
 
 
 
-double PitchDetector::detectAcFftPitchForBlock (float* samples) //, int numSamples)
+double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
 {
     const int minSample = int (sampleRate / maxFrequency);
     const int maxSample = int (sampleRate / minFrequency);

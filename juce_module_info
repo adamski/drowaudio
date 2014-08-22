@@ -1,6 +1,6 @@
 {
   "id":             "dRowAudio",
-  "name":           "dRowAudio audio and gui classes",
+  "name":           "dRowAudio audio and gui classes - adamski fork",
   "version":        "2.1.7",
   "description":    "Extensions to the JUCE library including graphical component for audio",
   "website":        "http://www.drowaudio.co.uk",
