@@ -47,14 +47,14 @@ PitchDetector::PitchDetector()
 PitchDetector::PitchDetector(int bufferSize)
 : detectionMethod       (autoCorrelationFunction),
 sampleRate            (44100.0),
-minFrequency          (50), maxFrequency (1600),
+minFrequency          (50), maxFrequency (2400),
 buffer1               (bufferSize), buffer2 (bufferSize),
 numSamplesNeededForDetection (bufferSize),
-currentBlockBuffer    (numSamplesNeededForDetection),
-inputFifoBuffer       (numSamplesNeededForDetection * 2),
+currentBlockBuffer    (bufferSize),
+inputFifoBuffer       (bufferSize * 2),
 mostRecentPitch       (0.0)
 {
-    updateFilters();
+    updateFiltersAndBlockSizes();
     logger = Logger::getCurrentLogger();
     
 }
@@ -255,7 +255,7 @@ double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
     
     //logger->writeToLog ("numSamples:"+String(numSamples));
     
-    const int windowSize = buffer1.getSize();
+    const int windowSize = numSamples; //buffer1.getSize();
     
     Buffer magnitudes(windowSize);
     
@@ -333,17 +333,23 @@ double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
  ...
  
  */
-template <typename FloatingPointType> void PitchDetector::autocorrelateFft (const FloatingPointType* inputSamples, int numSamples, FloatingPointType* outputSamples, /*int fftSize,*/ FloatingPointType*  magnitudes) noexcept
+
+void PitchDetector::autocorrelateFft (float* inputSamples, int numSamples, float* outputSamples, /*int fftSize,*/ float* magnitudes) noexcept
 {
     //int numSamples2 = numSamples*2;
     //    %FFT method based on zero padding
     //    // apply window first!
     
-    //Window window(numSamples);
+    Window window(numSamples);
     
-    std::copy(inputSamples, inputSamples+(numSamples*sizeof(FloatingPointType)), outputSamples);
     
-    //window.applyWindow(outputSamples, numSamples);
+    
+    buffer2.copyFrom(inputSamples, numSamples);
+    outputSamples = buffer2.getData();
+    
+    //std::copy(inputSamples, inputSamples+(numSamples*sizeof(FloatingPointType)), outputSamples);
+    
+    window.applyWindow(outputSamples, numSamples);
     
     // create padding  -  might be a more efficient way of doing this
     //FloatingPointType* inputPadded = static_cast<FloatingPointType *> (malloc(numSamples2*sizeof(FloatingPointType)));
@@ -367,7 +373,6 @@ template <typename FloatingPointType> void PitchDetector::autocorrelateFft (cons
     // abs, ^2
     for (int i=0; i<numSamples; i++)
     {
-        //inputPadded[i] = std::pow (std::abs (inputPadded[i]), 2);
         outputSamples[i] = std::pow (std::abs (outputSamples[i]), 2);
     }
     

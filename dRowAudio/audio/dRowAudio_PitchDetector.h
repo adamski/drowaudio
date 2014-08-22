@@ -168,8 +168,11 @@ private:
     IIRFilter highFilter, lowFilter;
     int numSamplesNeededForDetection;
     Buffer currentBlockBuffer;
+    Buffer outputBuffer;
     FifoBuffer<float> inputFifoBuffer;
     double mostRecentPitch;
+    
+    //FifoBuffer<float> outputFifoBuffer;
     
     Logger* logger;
 
@@ -185,7 +188,7 @@ private:
     double detectAcFftPitchForBlock (float* samples, int numSamples);
     
     //==============================================================================
-    template <typename FloatingPointType> void autocorrelateFft (const FloatingPointType* inputSamples, int numSamples, FloatingPointType* outputSamples, /*int fftSize,*/ FloatingPointType*  magnitudes) noexcept;
+    void autocorrelateFft (float* inputSamples, int numSamples, float* outputSamples, /*int fftSize,*/ float*  magnitudes) noexcept;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PitchDetector);
