@@ -251,7 +251,7 @@ double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
     const int minSample = int (sampleRate / maxFrequency);
     const int maxSample = int (sampleRate / minFrequency);
     
-    const int numSamples = buffer1.getSize();
+    //const int numSamples = buffer1.getSize();
     
     logger->writeToLog ("numSamples:"+String(numSamples));
     

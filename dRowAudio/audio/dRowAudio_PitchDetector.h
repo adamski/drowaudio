@@ -109,7 +109,7 @@ public:
     
     /** Simplified version using FFT to do the autocorrelation 
      */
-    double detectPitchAutoFFT (float* samples) noexcept;
+    double detectPitchAutoFFT (float* samples, int numSamples) noexcept;
 
     //==============================================================================
     /** Sets the sample rate to base the detection and pitch calculation algorithms on.
