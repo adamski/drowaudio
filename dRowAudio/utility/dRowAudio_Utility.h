@@ -180,19 +180,25 @@ static void drawBufferToImage (const Image& image, const float* samples, int num
     Graphics g (image);
     g.setColour (colour);
     const float imageXScale = image.getWidth() / (float) numSamples;
-    float y1 = (float) image.getHeight();
     
+    Path p;
+    bool isFirst = true;
+
     for (int i = 0; i < numSamples; ++i)
     {
-        const float x1 = i * imageXScale;
-        const float x2 = x1 + imageXScale;
-        const float y2 = image.getHeight() - (samples[i] * image.getHeight());
+        const float x = i * imageXScale;
+        const float y = image.getHeight() - (samples[i] * image.getHeight());
+
+        if (isFirst)
+        {
+            p.startNewSubPath (x, y);
+            isFirst = false;
+        }
         
-        const Line<float> line (Point<float> (x1, y1), Point<float> (x2, y2));
-        g.drawLine (line, thickness);
-        
-        y1 = y2;
+        p.lineTo (x, y);
     }
+    
+    g.strokePath (p, PathStrokeType (thickness));
 }
 
 /** Dumps a given image to a File in png format.
@@ -408,7 +414,7 @@ static bool writeValueTreeToFile (const ValueTree& treeToWrite, const File& file
         else 
         {
             TemporaryFile tempFile (fileToWriteTo);
-            ScopedPointer <FileOutputStream> outputStream (tempFile.getFile().createOutputStream());
+            ScopedPointer<FileOutputStream> outputStream (tempFile.getFile().createOutputStream());
             
             if (outputStream != nullptr)
             {
@@ -480,7 +486,7 @@ public:
      */
     ~ScopedValueTreeFile()
     {
-        writeValueTreeToFile (tree, file, asXml);
+        save();
     }
 
     /** Sets the file to use.
@@ -488,21 +494,24 @@ public:
         you can obtain using the getTree() method.
      */
     inline void setFile (const File& newFile)   {   tree = readValueTreeFromFile (file = newFile);  }
+    
+    /** Saves the file to disk using a TemporaryFile in case there are any problems. */
+    inline Result save()
+    {
+        return writeValueTreeToFile (tree, file, asXml) ? Result::ok()
+                                                        : Result::fail (TRANS("Error saving file to disk"));
+    }
 
-    /** Returns the ValueTree being used.
-     */
+    /** Returns the ValueTree being used. */
     inline ValueTree& getTree()                 {    return tree;           }
 
-    /** Returns the File being used.
-     */
+    /** Returns the File being used. */
     inline File getFile() const                 {    return file;           }
     
-    /** Sets the tree to save to the file as XML or binary data.
-     */
+    /** Sets the tree to save to the file as XML or binary data. */
     inline void setSaveAsXml (bool saveAsXml)   {   asXml = saveAsXml;      }
     
-    /** Returns true if the file will be saved as XML.
-     */
+    /** Returns true if the file will be saved as XML. */
     inline bool getSaveAsXml() const            {   return asXml;           }
     
 private:
@@ -523,27 +532,24 @@ struct ScopedChangeSender
     ~ScopedChangeSender() { broadcaster.sendChangeMessage(); }
     
     ChangeBroadcaster& broadcaster;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ScopedChangeSender)
 };
 
 //==============================================================================
-/** Useful macro to print a variable name and value to the console.
- */
+/** Useful macro to print a variable name and value to the console. */
 #define DBG_VAR(dbgvar)     {DBG (JUCE_STRINGIFY(dbgvar) << ": " << dbgvar)}
 
-/** Useful macro to print a Point to the console.
- */
+/** Useful macro to print a Point to the console. */
 #define DBG_POINT(dbgpoint) {DBG (JUCE_STRINGIFY(dbgpoint) << ": " << DebugObject::convertToString (dbgpoint))}
 
-/** Useful macro to print a Range to the console.
- */
+/** Useful macro to print a Range to the console. */
 #define DBG_RANGE(dbgrange) {DBG (JUCE_STRINGIFY(dbgrange) << ": " << DebugObject::convertToString (dbgrange))}
 
-/** Useful macro to print a Line to the console.
- */
+/** Useful macro to print a Line to the console. */
 #define DBG_LINE(dbgline)   {DBG (JUCE_STRINGIFY(dbgline) << ": " << DebugObject::convertToString (dbgline))}
 
-/** Useful macro to print a Rectangle to the console.
- */
+/** Useful macro to print a Rectangle to the console. */
 #define DBG_RECT(dbgrect)   {DBG (JUCE_STRINGIFY(dbgrect) << ": " << DebugObject::convertToString (dbgrect))}
 
 /** Prints a string representation of a lot of common objects to the console for

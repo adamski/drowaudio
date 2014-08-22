@@ -37,6 +37,58 @@
 #endif
 
 //==============================================================================
+/** Contains a value and its reciprocal.
+    This has some handy operator overloads to speed up multiplication and divisions.
+ */
+template <typename FloatingPointType>
+class Reciprocal
+{
+public:
+    /** Creates a 1/1 value/reciprocal pair. */
+    Reciprocal()                                        { set (1.0); }
+    
+    /** Creates a 1/x value/reciprocal pair. */
+    Reciprocal (FloatingPointType initalValue)          { set (initalValue); }
+
+    /** Returns the value. */
+    FloatingPointType get() const noexcept              { return value; }
+
+    /** Returns the value. */
+    FloatingPointType getValue() const noexcept         { return value; }
+    
+    /** Returns the reciprocal. */
+    FloatingPointType getReciprocal() const noexcept    { return reciprocal; }
+
+    /** Sets the value updating the reciprocal. */
+    FloatingPointType set (FloatingPointType newValue) noexcept
+    {
+        jassert (newValue != 0);
+        value = newValue;
+        reciprocal = (FloatingPointType) (1.0 / value);
+        
+        return value;
+    }
+
+    /** Sets the value updating the reciprocal. */
+    FloatingPointType operator= (FloatingPointType newValue) noexcept           { return set (newValue); }
+
+    FloatingPointType operator+ (FloatingPointType operand) const noexcept      { return value + operand; }
+    FloatingPointType operator+= (FloatingPointType operand) noexcept           { return set (value + operand); }
+
+    FloatingPointType operator- (FloatingPointType operand) const noexcept      { return value - operand; }
+    FloatingPointType operator-= (FloatingPointType operand) noexcept           { return set (value - operand); }
+
+    FloatingPointType operator* (FloatingPointType operand) const noexcept      { return value * operand; }
+    FloatingPointType operator/ (FloatingPointType operand) const noexcept      { return operand * reciprocal * value; }
+    FloatingPointType operator*= (FloatingPointType operand) noexcept           { return set (value *= operand); }
+    FloatingPointType operator/= (FloatingPointType operand) noexcept           { return set (operand * reciprocal * value); }
+
+private:
+    FloatingPointType value, reciprocal;
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Reciprocal)
+};
+
+//==============================================================================
 /** Returns true if the given integer number is even. */
 inline bool isEven (int number) noexcept
 {
@@ -226,25 +278,16 @@ inline FloatingPointType findStandardDeviation (const FloatingPointType* samples
     return sqrt (findCorrectedVariance (samples, numSamples));
 }
 
-/** Finds the RMS for a set of squared samples.
- */
-template <typename FloatingPointType>
-inline FloatingPointType findRMSPreSquared (const FloatingPointType* squaredSamples, int numSamples) noexcept
-{
-    return sqrt (findMean (squaredSamples, numSamples));
-}
-
-/** Finds the RMS for a set of samples.
-    Note that this will create a copy of all the samples so you might want to use the other version to avoid these allocations in time-critical situations.
- */
+/** Finds the RMS for a set of samples. */
 template <typename FloatingPointType>
 inline FloatingPointType findRMS (const FloatingPointType* samples, int numSamples) noexcept
 {
-    HeapBlock<FloatingPointType> data (numSamples);
-    memcpy (data.getData(), samples, numSamples * sizeof (FloatingPointType));
-    square (data.getData(), numSamples);
+    FloatingPointType sum = 0;
     
-    return findRMSPreSquared (data.getData(), numSamples);
+    for (int i = 0; i < numSamples; ++i)
+        sum += juce::square (*samples++);
+    
+    return std::sqrt (sum / numSamples);
 }
 
 //==============================================================================
@@ -355,7 +398,7 @@ inline FloatingPointType sincPi (const FloatingPointType x) noexcept
     if (x == 0)
         return static_cast<FloatingPointType> (1);
     
-    return static_cast<FloatingPointType> (sin (double_Pi * x) / (double_Pi * x));
+    return static_cast<FloatingPointType> (std::sin (double_Pi * x) / (double_Pi * x));
 }
 
 //==============================================================================

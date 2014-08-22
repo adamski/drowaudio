@@ -66,7 +66,6 @@ namespace drow {
 
 #include "audio/dRowAudio_AudioUtilityUnitTests.cpp"
 
-#include "audio/dRowAudio_Buffer.cpp"
 #include "audio/dRowAudio_EnvelopeFollower.cpp"
 #include "audio/dRowAudio_SampleRateConverter.cpp"
 
@@ -74,10 +73,7 @@ namespace drow {
 #include "audio/filters/dRowAudio_OnePoleFilter.cpp"
 
 #include "audio/fft/dRowAudio_Window.cpp"
-#include "audio/fft/dRowAudio_FFTEngine.cpp"
-#include "audio/fft/dRowAudio_mac_FFTOperation.cpp"
-#include "audio/fft/dRowAudio_ios_FFTOperation.cpp"
-#include "audio/fft/dRowAudio_FFTReal_FFTOperation.cpp"
+#include "audio/fft/dRowAudio_FFT.cpp"
 #include "audio/fft/dRowAudio_LTAS.cpp"
 
 // Gui
