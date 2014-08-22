@@ -49,7 +49,7 @@ PitchDetector::PitchDetector(int bufferSize)
 sampleRate            (44100.0),
 minFrequency          (50), maxFrequency (1600),
 buffer1               (bufferSize), buffer2 (bufferSize),
-numSamplesNeededForDetection (int ((sampleRate / minFrequency) * 2)),
+numSamplesNeededForDetection (bufferSize),
 currentBlockBuffer    (numSamplesNeededForDetection),
 inputFifoBuffer       (numSamplesNeededForDetection * 2),
 mostRecentPitch       (0.0)
@@ -86,7 +86,7 @@ double PitchDetector::detectPitchAutoFFT (float* samples, int numSamples) noexce
     
     //while (numSamples >= numSamplesNeededForDetection)
     //{
-        double pitch = detectAcFftPitchForBlock (samples);
+        double pitch = detectAcFftPitchForBlock (samples, numSamples);
         
         if (pitch > 0.0) return pitch;
             //pitches.add (pitch);
@@ -253,7 +253,7 @@ double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
     
     //const int numSamples = buffer1.getSize();
     
-    logger->writeToLog ("numSamples:"+String(numSamples));
+    //logger->writeToLog ("numSamples:"+String(numSamples));
     
     const int windowSize = buffer1.getSize();
     
@@ -352,14 +352,15 @@ template <typename FloatingPointType> void PitchDetector::autocorrelateFft (cons
     //std::copy(outputSamples, outputSamples+(numSamples*sizeof(FloatingPointType)), inputPadded);
     // end create padding
     
-    FFTEngine fft(log2(numSamples));
+    FFT fft(log2(numSamples));
+
     
     //    fx = fft([x; zeros(n,1)]); % zero pad and FFT
     fft.performFFT(outputSamples); //(inputPadded);
     
     //----------?????????
     
-    magnitudes = fft.getMagnitudesBuffer().getData();
+    fft.getMagnitudes(magnitudes);
     
     //    x2 = ifft(fx.*conj(fx)); % abs()^2 and IFFT
     
