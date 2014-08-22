@@ -182,7 +182,7 @@ private:
     double detectAcfPitchForBlock (float* samples, int numSamples);
     double detectSdfPitchForBlock (float* samples, int numSamples);
     
-    double detectAcFftPitchForBlock (float* samples);
+    double detectAcFftPitchForBlock (float* samples, int numSamples);
     
     //==============================================================================
     template <typename FloatingPointType> void autocorrelateFft (const FloatingPointType* inputSamples, int numSamples, FloatingPointType* outputSamples, /*int fftSize,*/ FloatingPointType*  magnitudes) noexcept;
