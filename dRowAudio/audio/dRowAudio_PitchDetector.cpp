@@ -49,6 +49,7 @@ PitchDetector::PitchDetector(int bufferSize)
 sampleRate            (44100.0),
 minFrequency          (50), maxFrequency (2400),
 buffer1               (bufferSize), buffer2 (bufferSize),
+magnitudes            (bufferSize),
 numSamplesNeededForDetection (bufferSize),
 currentBlockBuffer    (bufferSize),
 inputFifoBuffer       (bufferSize * 2),
@@ -224,6 +225,8 @@ void PitchDetector::updateFiltersAndBlockSizes()
     
     buffer1.setSizeQuick (numSamplesNeededForDetection);
     buffer2.setSizeQuick (numSamplesNeededForDetection);
+    
+    magnitudes.setSizeQuick (numSamplesNeededForDetection); // not sure if needed... try and fix crash
 }
 
 void PitchDetector::updateFilters()
@@ -257,8 +260,6 @@ double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
     
     const int windowSize = numSamples; //buffer1.getSize();
     
-    Buffer magnitudes(windowSize);
-    
     lowFilter.reset();
     highFilter.reset();
     lowFilter.processSamples (samples, numSamples);
@@ -266,6 +267,10 @@ double PitchDetector::detectAcFftPitchForBlock (float* samples, int numSamples)
     
     autocorrelateFft (samples, numSamples, buffer1.getData(), magnitudes.getData());
     normalise (buffer1.getData(), buffer1.getSize());
+
+    findAbsoluteMax(magnitudes.getData(), numSamples, currentMaxMagLocation, currentMaxMagnitude);
+    fftPeak = currentMaxMagLocation / sampleRate;
+    logger->writeToLog(String(fftPeak));
     
     float* bufferData = buffer1.getData();
     

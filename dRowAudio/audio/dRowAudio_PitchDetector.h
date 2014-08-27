@@ -94,6 +94,8 @@ public:
     /** Returns the most recently detected pitch.
      */
     double getPitch() const noexcept                    {   return mostRecentPitch; }
+    
+    double getFFTPeakFrequency() noexcept;
 
     //==============================================================================
     /** Detects the average pitch in a block of samples.
@@ -171,6 +173,11 @@ private:
     Buffer outputBuffer;
     FifoBuffer<float> inputFifoBuffer;
     double mostRecentPitch;
+    
+    Buffer magnitudes;
+    float currentMaxMagnitude;
+    int currentMaxMagLocation;
+    double fftPeak;
     
     //FifoBuffer<float> outputFifoBuffer;
     
